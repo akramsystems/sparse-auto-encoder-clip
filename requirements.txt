@@ -1,0 +1,10 @@
+torch
+torchvision
+transformers
+datasets
+numpy
+pyyaml
+tqdm
+torchviz
+jupyter
+python-dotenv

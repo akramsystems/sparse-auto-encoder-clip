@@ -1,0 +1,9 @@
+.env
+.JPEG
+
+
+zh-plus/
+
+*__pycache__/*
+
+*.pyc
