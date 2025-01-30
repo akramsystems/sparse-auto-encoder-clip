@@ -7,7 +7,7 @@ from src.models.sae_model import SparseAutoencoder
 from src.data.dataloader import load_data
 from src.config import Config
 
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
 # Configurations
 layer_index = 11  # Adjusted to a valid index for the base model

@@ -9,6 +9,7 @@ from src.config import Config
 BATCH_SIZE = Config.batch_size
 MODEL_NAME = Config.model_name
 DATASET_NAME = Config.dataset_name
+NUMBER_OF_WORKERS = 10
 def load_data(
         batch_size=BATCH_SIZE,
         dataset_name=DATASET_NAME,
@@ -55,7 +56,7 @@ def load_data(
         
         return pixel_values
 
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, num_workers=NUMBER_OF_WORKERS)
 
 if __name__ == "__main__":
     # Example usage with a smaller subset
