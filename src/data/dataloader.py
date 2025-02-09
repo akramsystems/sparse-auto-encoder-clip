@@ -9,12 +9,20 @@ from src.config import Config
 BATCH_SIZE = Config.batch_size
 MODEL_NAME = Config.model_name
 DATASET_NAME = Config.dataset_name
-NUMBER_OF_WORKERS = 10
+NUMBER_OF_WORKERS = Config.number_of_workers
+
+def collate_fn(batch):
+    # Convert list of lists to a tensor
+    pixel_values = torch.stack([torch.tensor(item["pixel_values"]) for item in batch], dim=0)
+    assert pixel_values.shape == (len(batch), 3, 224, 224)
+    return pixel_values
+
 def load_data(
         batch_size=BATCH_SIZE,
         dataset_name=DATASET_NAME,
         model_name=MODEL_NAME,
-        subset_size=None):
+        subset_size=None,
+        split="train"):
     """
     Loads and preprocesses a subset of the specified dataset for use with a CLIP model.
 
@@ -30,7 +38,7 @@ def load_data(
 
     dataset = load_dataset(
         dataset_name,
-        split="train",
+        split=split,
         download_mode="reuse_cache_if_exists",
     )
     
@@ -47,14 +55,6 @@ def load_data(
         }
     
     dataset = dataset.map(preprocess_fn, batched=True, cache_file_name=f"{dataset_name}_processed.arrow")
-
-    def collate_fn(batch):
-        # Convert list of lists to a tensor
-        pixel_values = torch.stack([torch.tensor(item["pixel_values"]) for item in batch], dim=0)
-
-        assert pixel_values.shape == (len(batch), 3, 224, 224)
-        
-        return pixel_values
 
     return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, num_workers=NUMBER_OF_WORKERS)
 

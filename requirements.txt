@@ -8,3 +8,6 @@ tqdm
 torchviz
 jupyter
 python-dotenv
+streamlit
+plotly
+matplotlib

@@ -10,11 +10,16 @@ def main():
     layer_index = 11
     batch_size = 64
     
+    # Calculate subset size (25% of the dataset)
+    subset_size = int(100000 * 0.25)  # Assuming 100k images in total
+    
     feature_extractor = CLIPViTBaseExtractor(
         model_name="openai/clip-vit-base-patch32",
         layer_index=layer_index
     ).to(device)
-    dataloader = load_data(batch_size=batch_size)  # loads images
+    
+    # Add subset_size parameter to load_data
+    dataloader = load_data(batch_size=batch_size, subset_size=subset_size)
 
     all_features = []
     

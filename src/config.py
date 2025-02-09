@@ -14,12 +14,13 @@ class Config:
     cwd: str = os.getcwd()
     dataset_folder: str = os.path.join(cwd, "datasets")
     dataset_file_path: str = os.path.join(dataset_folder, "imagenet_test.tar.gz")
-    dataset_name: str = "2"
+    dataset_name: str = "zh-plus/tiny-imagenet"
     # Training
+    number_of_workers: int = 3
     layer_index: int = 22
     batch_size: int = 1024
     input_dim: int = 1024
     expansion_factor: int = 64
     lr: float = 1e-3
     beta_sparsity: float = 1e-4
-    epochs: int = 10
+    epochs: int = 4

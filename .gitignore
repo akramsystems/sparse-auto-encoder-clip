@@ -7,3 +7,5 @@ zh-plus/
 *__pycache__/*
 
 *.pyc
+
+*.pth
