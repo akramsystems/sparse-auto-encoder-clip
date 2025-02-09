@@ -108,5 +108,46 @@ def find_top_activating_images(test_loader, sae, feature_extractor, n_top_neuron
     
     return results
 
+def find_top_activating_images_from_precomputed(precomputed_features, sae, n_top_neurons=10, n_top_images=10, device="cuda", batch_size=64):
+    """
+    Find the top n images that activate each of the top n neurons using precomputed CLIP features.
+    Process features in batches to avoid memory issues.
+    """
+    sae.eval()
+    all_activations = []
+    
+    with torch.no_grad():
+        # Process features in batches
+        for i in tqdm(range(0, len(precomputed_features), batch_size), desc="Processing features"):
+            batch_features = torch.stack([
+                precomputed_features[j] 
+                for j in range(i, min(i + batch_size, len(precomputed_features)))
+            ]).to(device)
+            
+            encoded, _ = sae(batch_features)
+            all_activations.append(encoded.cpu())
+    
+    # Concatenate all batched activations
+    all_activations = torch.cat(all_activations, dim=0)
+    
+    # Find the neurons with highest average activation
+    mean_activations = torch.mean(all_activations, dim=0)
+    top_neuron_indices = torch.topk(mean_activations, n_top_neurons).indices
+    
+    results = {}
+    for neuron_idx in top_neuron_indices:
+        # Get activations for this neuron across all images
+        neuron_activations = all_activations[:, neuron_idx]
+        
+        # Find top activating images for this neuron
+        top_image_indices = torch.topk(neuron_activations, n_top_images).indices
+        
+        results[neuron_idx.item()] = {
+            'indices': top_image_indices.tolist(),
+            'activation_values': neuron_activations[top_image_indices].tolist()
+        }
+    
+    return results
+
 if __name__ == "__main__":
     precompute_top_neurons()

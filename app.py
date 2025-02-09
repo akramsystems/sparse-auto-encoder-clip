@@ -9,9 +9,10 @@ import pickle
 from pathlib import Path
 
 from src.data.dataloader import load_data
-from src.evaluation.neuron_activation import find_top_activating_images
+from src.evaluation.neuron_activation import find_top_activating_images_from_precomputed
 from src.models.clip_extractor import CLIPViTBaseExtractor
 from src.models.sae_model import SparseAutoencoder
+from src.data.precomputed_features_dataset import PrecomputedFeaturesDataset
 
 # Device setup
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
@@ -29,16 +30,34 @@ def load_models():
     sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
     sae.load_state_dict(torch.load(model_file_path, map_location=device))
     sae.eval()  # Set model to evaluation mode
-    return feature_extractor, sae
+    
+    # Load precomputed features
+    precomputed_features = PrecomputedFeaturesDataset("clip_features.pt")
+    
+    # Find top activating images using precomputed features
+    top_activations = find_top_activating_images_from_precomputed(
+        precomputed_features=precomputed_features,
+        sae=sae,
+        n_top_neurons=10,
+        n_top_images=10,
+        device=device,
+        batch_size=32  # Added smaller batch size
+    )
+    
+    return feature_extractor, sae, precomputed_features, top_activations
 
-feature_extractor, sae = load_models()
+feature_extractor, sae, precomputed_features, top_activations = load_models()
 
 # Add sidebar for navigation
 st.sidebar.title("Navigation")
 visualization_type = st.sidebar.radio(
     "Select Visualization Type",
-    ["Neuron Activation Distribution", "Top Activating Images"]
+    ["Neuron Activation Distribution", "Top Activating Features"]
 )
+
+if st.sidebar.checkbox("Debug Info"):
+    st.write("Number of precomputed features:", len(precomputed_features))
+    st.write("Feature dimension:", precomputed_features[0].shape)
 
 # Main title
 st.title("Sparse Autoencoder Neuron Activation Visualization")
@@ -70,30 +89,20 @@ if visualization_type == "Neuron Activation Distribution":
         plt.title("Distribution of Neuron Activations")
         st.pyplot(plt)
         
-elif visualization_type == "Top Activating Images":
-    neuron_data_dir = Path("data/top_neurons")
+elif visualization_type == "Top Activating Features":
+    # Add a neuron selector
+    selected_neuron = st.selectbox(
+        "Select Neuron",
+        options=sorted(top_activations.keys())
+    )
     
-    if not neuron_data_dir.exists():
-        st.error("Neuron data not found. Please run precompute_top_neurons.py first.")
-    else:
-        # Get all neuron files
-        neuron_files = sorted(neuron_data_dir.glob("neuron_*.pkl"))
-        
-        for neuron_file in neuron_files:
-            neuron_idx = int(neuron_file.stem.split('_')[1])
-            
-            with open(neuron_file, 'rb') as f:
-                data = pickle.load(f)
-            
-            st.subheader(f"Neuron {neuron_idx}")
-            
-            # Create a grid of images
-            image_tensor = torch.stack(data['images'])
-            grid = make_grid(image_tensor, nrow=5, normalize=True, padding=2)
-            
-            # Convert to PIL image for display
-            grid_image = transforms.ToPILImage()(grid)
-            st.image(grid_image, caption=f"Top activating images for neuron {neuron_idx}")
-            
-            # Display activation values
-            st.write("Activation values:", data['activation_values'])
+    st.subheader(f"Top Activating Features for Neuron {selected_neuron}")
+    
+    # Display activation values and feature indices in columns
+    data = top_activations[selected_neuron]
+    cols = st.columns(5)
+    for idx, (feature_idx, activation) in enumerate(zip(data['indices'], data['activation_values'])):
+        with cols[idx % 5]:
+            st.write(f"Feature Index: {feature_idx}")
+            st.write(f"Activation: {activation:.4f}")
+            # You can add more visualizations here for each feature

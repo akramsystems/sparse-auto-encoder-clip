@@ -22,20 +22,28 @@ def main():
     dataloader = load_data(batch_size=batch_size, subset_size=subset_size)
 
     all_features = []
+    all_images = []
     
     for batch in tqdm(dataloader, desc="Precomputing CLIP Features"):
+        # Store original images
+        all_images.extend(batch.cpu())
+        
+        # Extract features
         batch = batch.to(device)
         with torch.no_grad():
             batch_features = feature_extractor(batch)
-        # Move the batch features to CPU for storage
         all_features.append(batch_features.cpu())
 
-    # Concatenate all features into a single tensor
+    # Concatenate all features and images
     all_features = torch.cat(all_features, dim=0)
+    all_images = torch.stack(all_images)
 
-    # Save to disk for future use
-    torch.save(all_features, "clip_features.pt")
-    print("Saved CLIP features to clip_features.pt")
+    # Save both features and images
+    torch.save({
+        'features': all_features,
+        'images': all_images
+    }, "clip_features.pt")
+    print("Saved CLIP features and images to clip_features.pt")
 
 if __name__ == "__main__":
     main() 

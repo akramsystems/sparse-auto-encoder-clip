@@ -6,10 +6,12 @@ class PrecomputedFeaturesDataset(Dataset):
         super().__init__()
         # Load the features into memory (if you have enough RAM).
         # Alternatively, consider using something like an HDF5 file loader.
-        self.features = torch.load(features_path)
+        data = torch.load(features_path)
+        self.features = data['features']
+        self.images = data['images']
 
     def __len__(self):
         return self.features.shape[0]
 
     def __getitem__(self, idx):
-        return self.features[idx] 
+        return self.features[idx], self.images[idx] 
