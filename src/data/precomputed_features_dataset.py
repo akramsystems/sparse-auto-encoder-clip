@@ -8,10 +8,11 @@ class PrecomputedFeaturesDataset(Dataset):
         # Alternatively, consider using something like an HDF5 file loader.
         data = torch.load(features_path)
         self.features = data['features']
-        self.images = data['images']
+        self.images = data['images_224']
+        self.original_images = data['images_original']
 
     def __len__(self):
         return self.features.shape[0]
 
     def __getitem__(self, idx):
-        return self.features[idx], self.images[idx] 
+        return self.features[idx], self.images[idx], self.original_images[idx] 

@@ -14,8 +14,15 @@ NUMBER_OF_WORKERS = Config.number_of_workers
 def collate_fn(batch):
     # Convert list of lists to a tensor
     pixel_values = torch.stack([torch.tensor(item["pixel_values"]) for item in batch], dim=0)
-    assert pixel_values.shape == (len(batch), 3, 224, 224)
-    return pixel_values
+    filepaths = [item.get("file_path", str(i)) for i, item in enumerate(batch)]
+    
+    # Pull out the *raw* PIL images so we can save them later
+    raw_images = [item["image"] for item in batch]  # item["image"] is the PIL image from HF
+
+    # Make sure shapes match
+    assert pixel_values.shape[0] == len(filepaths) == len(raw_images)
+    
+    return pixel_values, filepaths, raw_images
 
 def load_data(
         batch_size=BATCH_SIZE,
@@ -25,6 +32,7 @@ def load_data(
         split="train"):
     """
     Loads and preprocesses a subset of the specified dataset for use with a CLIP model.
+    Also returns the *raw* images.
 
     Args:
         batch_size (int): The number of samples per batch to load.
@@ -36,6 +44,7 @@ def load_data(
         DataLoader: A PyTorch DataLoader object that yields batches of preprocessed image data.
     """
 
+    # Load the dataset
     dataset = load_dataset(
         dataset_name,
         split=split,
@@ -44,19 +53,31 @@ def load_data(
     
     # Select a smaller subset for testing
     if subset_size:
+        # Select subset BEFORE preprocessing to avoid processing the entire dataset
         dataset = dataset.select(range(subset_size))
     
     clip_processor = CLIPProcessor.from_pretrained(model_name)
     
     def preprocess_fn(examples):
+        processed = clip_processor(images=examples["image"], return_tensors="pt")["pixel_values"]
         return {
-            "pixel_values": clip_processor(images=examples["image"], return_tensors="pt")["pixel_values"],
-            "labels": examples["label"]
+            "pixel_values": processed,
+            "labels": examples["label"],
+            "file_path": [str(i) for i in range(len(examples["image"]))],
+            # Keep the original PIL images under "image" 
+            # so we can retrieve them in collate_fn
         }
     
-    dataset = dataset.map(preprocess_fn, batched=True, cache_file_name=f"{dataset_name}_processed.arrow")
+    # Turn off HF caching to ensure we get fresh data each run
+    dataset = dataset.map(preprocess_fn, batched=True, load_from_cache_file=False)
 
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, num_workers=NUMBER_OF_WORKERS)
+    return DataLoader(
+        dataset, 
+        batch_size=batch_size, 
+        shuffle=True, 
+        collate_fn=collate_fn, 
+        num_workers=NUMBER_OF_WORKERS
+    )
 
 if __name__ == "__main__":
     # Example usage with a smaller subset

@@ -22,9 +22,10 @@ layer_index = 11  # As used in training
 input_dim = 768  # CLIP base dimension
 expansion_factor = 64  # Matches training setup
 model_file_path = "sae_epoch_10.pth"
-
+N_TOP_NEURONS = 50
+N_TOP_IMAGES = 10
+BATCH_SIZE = 32
 # Load models
-@st.cache_resource
 def load_models():
     feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
     sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
@@ -38,10 +39,10 @@ def load_models():
     top_activations = find_top_activating_images_from_precomputed(
         precomputed_features=precomputed_features,
         sae=sae,
-        n_top_neurons=10,
-        n_top_images=10,
+        n_top_neurons=N_TOP_NEURONS,
+        n_top_images=N_TOP_IMAGES,
         device=device,
-        batch_size=32  # Added smaller batch size
+        batch_size=BATCH_SIZE  # Added smaller batch size
     )
     
     return feature_extractor, sae, precomputed_features, top_activations
@@ -96,13 +97,16 @@ elif visualization_type == "Top Activating Features":
         options=sorted(top_activations.keys())
     )
     
-    st.subheader(f"Top Activating Features for Neuron {selected_neuron}")
+    st.subheader(f"Top Activating Images for Neuron {selected_neuron}")
     
-    # Display activation values and feature indices in columns
+    # Display activation values and images in columns
     data = top_activations[selected_neuron]
     cols = st.columns(5)
     for idx, (feature_idx, activation) in enumerate(zip(data['indices'], data['activation_values'])):
         with cols[idx % 5]:
-            st.write(f"Feature Index: {feature_idx}")
-            st.write(f"Activation: {activation:.4f}")
-            # You can add more visualizations here for each feature
+            # Get the image tensor and convert to displayable forma
+            # this is a tensor not a path
+            # so we need to convert it to a PIL image
+            tensor = precomputed_features.original_images[feature_idx]
+            image = transforms.ToPILImage()(tensor)
+            st.image(image, caption=f"Activation: {activation:.4f}")

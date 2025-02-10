@@ -16,7 +16,7 @@ class Config:
     dataset_file_path: str = os.path.join(dataset_folder, "imagenet_test.tar.gz")
     dataset_name: str = "zh-plus/tiny-imagenet"
     # Training
-    number_of_workers: int = 3
+    number_of_workers: int = 2
     layer_index: int = 22
     batch_size: int = 1024
     input_dim: int = 1024
