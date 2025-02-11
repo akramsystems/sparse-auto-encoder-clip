@@ -1,10 +1,10 @@
-import streamlit as st
 import pickle
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 from PIL import Image
-
+import streamlit as st
 import torch
 import torchvision.transforms as transforms
 
@@ -20,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 layer_index = 11  # As used in training
 input_dim = 768  # CLIP base dimension
 expansion_factor = 64  # Matches training setup
-model_file_path = "sae_epoch_10.pth"
+model_file_path = os.path.join(os.path.dirname(__file__), "sae_epoch_10.pth")
 N_TOP_NEURONS = 10
 N_TOP_IMAGES = 10
 BATCH_SIZE = 32
