@@ -40,19 +40,17 @@ BATCH_SIZE = 32
 
 @st.cache_resource
 def load_models():
-    # If the pickle exists, load it
+    # If the pickle exists, load it    
+    feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
+    sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)    
+    sae.load_state_dict(torch.load(model_file_path, map_location=device))
+    sae.eval()
+    precomputed_features = PrecomputedFeaturesDataset(clip_features_path)
+
     if Path(top_activations_path).exists():
         with open(top_activations_path, "rb") as f:
             top_activations = pickle.load(f)
     else:
-        # Otherwise, compute top_activations once
-        feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
-        sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
-        sae.load_state_dict(torch.load(model_file_path, map_location=device))
-        sae.eval()
-
-        precomputed_features = PrecomputedFeaturesDataset(clip_features_path)
-
         top_activations = find_top_activating_images_from_precomputed(
             precomputed_features=precomputed_features,
             sae=sae,
@@ -65,13 +63,6 @@ def load_models():
         # Save to pickle for future calls
         with open(top_activations_path, "wb") as f:
             pickle.dump(top_activations, f)
-
-    feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
-    sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
-    sae.load_state_dict(torch.load(model_file_path, map_location=device))
-    sae.eval()
-
-    precomputed_features = PrecomputedFeaturesDataset(clip_features_path)
 
     return feature_extractor, sae, precomputed_features, top_activations
 
