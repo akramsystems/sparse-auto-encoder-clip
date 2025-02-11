@@ -66,14 +66,12 @@ def load_models():
         with open(top_activations_path, "wb") as f:
             pickle.dump(top_activations, f)
 
-    # If your other objects (feature_extractor, sae, precomputed_features) 
-    # don't change often, you could also cache them similarly
     feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
     sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
     sae.load_state_dict(torch.load(model_file_path, map_location=device))
     sae.eval()
 
-    precomputed_features = PrecomputedFeaturesDataset()
+    precomputed_features = PrecomputedFeaturesDataset(clip_features_path)
 
     return feature_extractor, sae, precomputed_features, top_activations
 
