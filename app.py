@@ -37,7 +37,6 @@ def load_models():
         # Otherwise, compute top_activations once
         feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
         sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
-        breakpoint()
         sae.load_state_dict(torch.load(model_file_path, map_location=device))
         sae.eval()
 
