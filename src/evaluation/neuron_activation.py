@@ -143,7 +143,7 @@ def find_top_activating_images_from_precomputed(
 
     # Find the neurons with highest average activation
     mean_activations = torch.mean(all_activations, dim=0)
-    breakpoint()
+    
     top_neuron_indices = torch.topk(mean_activations, n_top_neurons).indices
 
     results = {}

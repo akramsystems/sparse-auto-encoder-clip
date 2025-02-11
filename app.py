@@ -1,14 +1,13 @@
 import streamlit as st
-
-import matplotlib.pyplot as plt
-from PIL import Image
-import torch
-from torchvision.utils import make_grid
-import torchvision.transforms as transforms
 import pickle
 from pathlib import Path
 
-from src.data.dataloader import load_data
+import matplotlib.pyplot as plt
+from PIL import Image
+
+import torch
+import torchvision.transforms as transforms
+
 from src.evaluation.neuron_activation import find_top_activating_images_from_precomputed
 from src.models.clip_extractor import CLIPViTBaseExtractor
 from src.models.sae_model import SparseAutoencoder
@@ -22,32 +21,60 @@ layer_index = 11  # As used in training
 input_dim = 768  # CLIP base dimension
 expansion_factor = 64  # Matches training setup
 model_file_path = "sae_epoch_10.pth"
-N_TOP_NEURONS = 50
+N_TOP_NEURONS = 10
 N_TOP_IMAGES = 10
 BATCH_SIZE = 32
-# Load models
+
+@st.cache_resource
 def load_models():
+    # If the pickle exists, load it
+    if Path("top_activations.pkl").exists():
+        with open("top_activations.pkl", "rb") as f:
+            top_activations = pickle.load(f)
+    else:
+        # Otherwise, compute top_activations once
+        feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
+        sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
+        sae.load_state_dict(torch.load(model_file_path, map_location=device))
+        sae.eval()
+
+        precomputed_features = PrecomputedFeaturesDataset("clip_features.pt")
+
+        top_activations = find_top_activating_images_from_precomputed(
+            precomputed_features=precomputed_features,
+            sae=sae,
+            n_top_neurons=N_TOP_NEURONS,
+            n_top_images=N_TOP_IMAGES,
+            device=device,
+            batch_size=BATCH_SIZE
+        )
+
+        # Save to pickle for future calls
+        with open("top_activations.pkl", "wb") as f:
+            pickle.dump(top_activations, f)
+
+    # If your other objects (feature_extractor, sae, precomputed_features) 
+    # don't change often, you could also cache them similarly
     feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
     sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
     sae.load_state_dict(torch.load(model_file_path, map_location=device))
-    sae.eval()  # Set model to evaluation mode
-    
-    # Load precomputed features
+    sae.eval()
+
     precomputed_features = PrecomputedFeaturesDataset("clip_features.pt")
-    
-    # Find top activating images using precomputed features
-    top_activations = find_top_activating_images_from_precomputed(
-        precomputed_features=precomputed_features,
-        sae=sae,
-        n_top_neurons=N_TOP_NEURONS,
-        n_top_images=N_TOP_IMAGES,
-        device=device,
-        batch_size=BATCH_SIZE  # Added smaller batch size
-    )
-    
+
     return feature_extractor, sae, precomputed_features, top_activations
 
-feature_extractor, sae, precomputed_features, top_activations = load_models()
+if "models_loaded" not in st.session_state:
+    st.session_state["feature_extractor"], \
+    st.session_state["sae"], \
+    st.session_state["precomputed_features"], \
+    st.session_state["top_activations"] = load_models()
+    st.session_state["models_loaded"] = True
+
+feature_extractor = st.session_state["feature_extractor"]
+sae = st.session_state["sae"]
+precomputed_features = st.session_state["precomputed_features"]
+top_activations = st.session_state["top_activations"]
 
 # Add sidebar for navigation
 st.sidebar.title("Navigation")
@@ -56,9 +83,7 @@ visualization_type = st.sidebar.radio(
     ["Neuron Activation Distribution", "Top Activating Features"]
 )
 
-if st.sidebar.checkbox("Debug Info"):
-    st.write("Number of precomputed features:", len(precomputed_features))
-    st.write("Feature dimension:", precomputed_features[0].shape)
+
 
 # Main title
 st.title("Sparse Autoencoder Neuron Activation Visualization")
