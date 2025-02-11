@@ -20,12 +20,19 @@ device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 layer_index = 11  # As used in training
 input_dim = 768  # CLIP base dimension
 expansion_factor = 64  # Matches training setup
-model_file_path = "./sae_epoch.pth"
-assert os.path.exists(model_file_path)
-clip_features_path = "./clip_features.pt"
-assert os.path.exists(clip_features_path)
-top_activations_path = "./top_activations.pkl"
-assert os.path.exists(top_activations_path)
+
+
+# Define paths using BASE_DIR
+model_file_path = BASE_DIR / "sae_epoch.pth"
+assert model_file_path.exists(), f"File not found: {model_file_path}"
+
+clip_features_path = BASE_DIR / "clip_features.pt"
+assert clip_features_path.exists(), f"File not found: {clip_features_path}"
+
+top_activations_path = BASE_DIR / "top_activations.pkl"
+assert top_activations_path.exists(), f"File not found: {top_activations_path}"
+
+
 N_TOP_NEURONS = 10
 N_TOP_IMAGES = 10
 BATCH_SIZE = 32
