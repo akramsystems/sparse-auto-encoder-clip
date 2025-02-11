@@ -23,6 +23,7 @@ expansion_factor = 64  # Matches training setup
 
 
 # Define paths using BASE_DIR
+BASE_DIR = Path(__file__).parent.resolve()
 model_file_path = BASE_DIR / "sae_epoch.pth"
 assert model_file_path.exists(), f"File not found: {model_file_path}"
 
