@@ -38,7 +38,6 @@ N_TOP_NEURONS = 10
 N_TOP_IMAGES = 10
 BATCH_SIZE = 32
 
-@st.cache_resource
 def load_models():
     # If the pickle exists, load it    
     feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
