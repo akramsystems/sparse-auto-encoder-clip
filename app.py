@@ -20,7 +20,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.ba
 layer_index = 11  # As used in training
 input_dim = 768  # CLIP base dimension
 expansion_factor = 64  # Matches training setup
-model_file_path = os.path.join(os.getcwd(), "sae_epoch_10.pth")
+model_file_path = "/workspaces/sparse-auto-encoder-clip/sae_epoch.pth"
+clip_features_path = "/workspaces/sparse-auto-encoder-clip/clip_features.pt"
+top_activations_path = "/workspaces/sparse-auto-encoder-clip/top_activations.pkl"
 N_TOP_NEURONS = 10
 N_TOP_IMAGES = 10
 BATCH_SIZE = 32
@@ -28,17 +30,18 @@ BATCH_SIZE = 32
 @st.cache_resource
 def load_models():
     # If the pickle exists, load it
-    if Path("top_activations.pkl").exists():
-        with open("top_activations.pkl", "rb") as f:
+    if Path(top_activations_path).exists():
+        with open(top_activations_path, "rb") as f:
             top_activations = pickle.load(f)
     else:
         # Otherwise, compute top_activations once
         feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
         sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)
+        breakpoint()
         sae.load_state_dict(torch.load(model_file_path, map_location=device))
         sae.eval()
 
-        precomputed_features = PrecomputedFeaturesDataset("clip_features.pt")
+        precomputed_features = PrecomputedFeaturesDataset(clip_features_path)
 
         top_activations = find_top_activating_images_from_precomputed(
             precomputed_features=precomputed_features,
@@ -50,7 +53,7 @@ def load_models():
         )
 
         # Save to pickle for future calls
-        with open("top_activations.pkl", "wb") as f:
+        with open(top_activations_path, "wb") as f:
             pickle.dump(top_activations, f)
 
     # If your other objects (feature_extractor, sae, precomputed_features) 
@@ -60,7 +63,7 @@ def load_models():
     sae.load_state_dict(torch.load(model_file_path, map_location=device))
     sae.eval()
 
-    precomputed_features = PrecomputedFeaturesDataset("clip_features.pt")
+    precomputed_features = PrecomputedFeaturesDataset()
 
     return feature_extractor, sae, precomputed_features, top_activations
 
