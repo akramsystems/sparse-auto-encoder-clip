@@ -15,9 +15,12 @@ DATA_SPLIT_NAME = "valid"
 N_TOP_NEURONS = 50
 N_TOP_IMAGES = 10
 
+
+device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+
+
 def precompute_top_neurons(save_dir="data/top_neurons", subset_percentage=DATA_SPLIT):
     # Device setup
-    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     
     # Model parameters
     layer_index = 11
@@ -55,7 +58,7 @@ def precompute_top_neurons(save_dir="data/top_neurons", subset_percentage=DATA_S
     # Save results
     for neuron_idx, data in results.items():
         neuron_data = {
-            'images': [img.cpu() for img in data['images']],
+            'images': [img.to(device) for img in data['images']],
             'activation_values': data['activation_values']
         }
         
@@ -85,14 +88,17 @@ def find_top_activating_images(test_loader, sae, feature_extractor, n_top_neuron
     
     with torch.no_grad():
         for batch in tqdm(test_loader, desc="Processing images"):
+            # Adjust unpacking to match the structure of the batch
+            inputs = batch[0]  # Assuming the first element is the input data
+            
             # Store original images
-            all_images.extend(batch.cpu())
+            all_images.extend(inputs.to(device))
             
             # Get activations
-            batch = batch.to(device)
-            clip_features = feature_extractor(batch)
+            inputs = inputs.to(device)
+            clip_features = feature_extractor(inputs)
             encoded, _ = sae(clip_features)
-            all_activations.append(encoded.cpu())
+            all_activations.append(encoded.to(device))
     
     # Convert to tensors
     all_activations = torch.cat(all_activations, dim=0)
@@ -136,7 +142,7 @@ def find_top_activating_images_from_precomputed(
             ]).to(device)
 
             encoded, _ = sae(batch_features)
-            all_activations.append(encoded.cpu())
+            all_activations.append(encoded.to(device))
 
     # Concatenate all batched activations
     all_activations = torch.cat(all_activations, dim=0)
@@ -157,5 +163,6 @@ def find_top_activating_images_from_precomputed(
         }
 
     return results
+
 if __name__ == "__main__":
     precompute_top_neurons()

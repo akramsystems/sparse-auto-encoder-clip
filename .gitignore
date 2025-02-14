@@ -3,10 +3,15 @@
 
 
 zh-plus/
+data/
 
 *__pycache__/*
 
+data/
+*.pt
+*.pkl
 *.pyc
 
 *.pth
 *.pt
+*.pkl

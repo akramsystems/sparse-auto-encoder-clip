@@ -33,8 +33,6 @@ assert clip_features_path.exists(), f"File not found: {clip_features_path}"
 print("Clip Features File Path Exists")
 
 top_activations_path = BASE_DIR / "top_activations.pkl"
-assert top_activations_path.exists(), f"File not found: {top_activations_path}"
-print("Top Activation File Path Exists")
 
 
 N_TOP_NEURONS = 10
@@ -44,8 +42,8 @@ BATCH_SIZE = 32
 def load_models():
     # If the pickle exists, load it    
     feature_extractor = CLIPViTBaseExtractor(layer_index=layer_index).to(device)
-    sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)    
-    sae.load_state_dict(torch.load(model_file_path, map_location=device), strict=False)
+    sae = SparseAutoencoder(input_dim=input_dim, expansion_factor=expansion_factor).to(device)  
+    sae.load_state_dict(torch.load(model_file_path, map_location=device, weights_only=False), strict=False)
     sae.eval()
     precomputed_features = PrecomputedFeaturesDataset(clip_features_path)
 
