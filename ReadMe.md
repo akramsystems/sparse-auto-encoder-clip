@@ -2,8 +2,6 @@
 
 ![Streamlit App Screencast](streamlit-app-screencast.gif)
 
-
-
 ## Set up Environment with Anaconda
 
 ### Create Environment
@@ -45,7 +43,3 @@ python -m src.evaluation.neuron_activation
 ```bash
 python -m streamlit run app.py
 ```
-
-### Recording Screencast
-
-[Streamlit App Screencast](streamlit-app-screencast.webm.mp4)
